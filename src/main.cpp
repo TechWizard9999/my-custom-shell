@@ -1,11 +1,23 @@
+#include "Shell.h"
+#include "commands/CdCommand.h"
+#include "commands/EchoCommand.h"
+#include "commands/ExitCommand.h"
+#include "commands/PwdCommand.h"
+#include "commands/TypeCommand.h"
 #include <iostream>
-#include <string>
 
 int main() {
-  // Flush after every std::cout / std:cerr
   std::cout << std::unitbuf;
   std::cerr << std::unitbuf;
 
-  // TODO: Uncomment the code below to pass the first stage
-  // std::cout << "$ ";
+  Shell shell;
+
+  shell.registerCommands(new ExitCommand());
+  shell.registerCommands(new EchoCommand());
+  shell.registerCommands(new TypeCommand(shell));
+  shell.registerCommands(new PwdCommand());
+  shell.registerCommands(new CdCommand());
+  shell.run();
+
+  return 0;
 }
