@@ -8,8 +8,9 @@ struct Redirection {
   bool hasOutputRedirect;
   bool hasErrorRedirect;
   bool appendOutput;
+  bool appendError;
 
   Redirection()
       : outputFile(""), errorFile(""), hasOutputRedirect(false),
-        hasErrorRedirect(false), appendOutput(false) {}
+        hasErrorRedirect(false), appendOutput(false), appendError(false) {}
 };

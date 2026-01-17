@@ -49,7 +49,7 @@ public:
         ioRedirector.redirectOutput(redir.outputFile, redir.appendOutput);
       }
       if (redir.hasErrorRedirect) {
-        ioRedirector.redirectError(redir.errorFile);
+        ioRedirector.redirectError(redir.errorFile, redir.appendError);
       }
 
       std::string cmdName = args[0];

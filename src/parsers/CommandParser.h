@@ -98,6 +98,13 @@ public:
           redir.outputFile = tokens[i + 1];
           i++;
         }
+      } else if (token == "2>>") {
+        if (i + 1 < tokens.size()) {
+          redir.hasErrorRedirect = true;
+          redir.appendError = true;
+          redir.errorFile = tokens[i + 1];
+          i++;
+        }
       } else if (token == "2>") {
         if (i + 1 < tokens.size()) {
           redir.hasErrorRedirect = true;
