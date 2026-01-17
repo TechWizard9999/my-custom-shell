@@ -7,9 +7,9 @@ struct Redirection {
   std::string errorFile;
   bool hasOutputRedirect;
   bool hasErrorRedirect;
+  bool appendOutput;
 
   Redirection()
       : outputFile(""), errorFile(""), hasOutputRedirect(false),
-        hasErrorRedirect(false) {}
+        hasErrorRedirect(false), appendOutput(false) {}
 };
-    

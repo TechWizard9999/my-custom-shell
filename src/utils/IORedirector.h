@@ -13,12 +13,20 @@ private:
   static const int OUT = 0;
   static const int ERR = 1;
 
-  bool redirect(int fdIndex, int targetFd, const std::string &filename) {
+  bool redirect(int fdIndex, int targetFd, const std::string &filename,
+                bool append) {
     if (isRedirecting[fdIndex]) {
       return false;
     }
 
-    int fileFd = open(filename.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    int flags = O_WRONLY | O_CREAT;
+    if (append) {
+      flags |= O_APPEND;
+    } else {
+      flags |= O_TRUNC;
+    }
+
+    int fileFd = open(filename.c_str(), flags, 0644);
     if (fileFd < 0) {
       return false;
     }
@@ -72,12 +80,12 @@ public:
     isRedirecting[ERR] = false;
   }
 
-  bool redirectOutput(const std::string &filename) {
-    return redirect(OUT, STDOUT_FILENO, filename);
+  bool redirectOutput(const std::string &filename, bool append = false) {
+    return redirect(OUT, STDOUT_FILENO, filename, append);
   }
 
-  bool redirectError(const std::string &filename) {
-    return redirect(ERR, STDERR_FILENO, filename);
+  bool redirectError(const std::string &filename, bool append = false) {
+    return redirect(ERR, STDERR_FILENO, filename, append);
   }
 
   void restore() {
@@ -87,4 +95,3 @@ public:
 
   ~IORedirector() { restore(); }
 };
-

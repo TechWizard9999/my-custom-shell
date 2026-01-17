@@ -46,7 +46,7 @@ public:
 
       IORedirector ioRedirector;
       if (redir.hasOutputRedirect) {
-        ioRedirector.redirectOutput(redir.outputFile);
+        ioRedirector.redirectOutput(redir.outputFile, redir.appendOutput);
       }
       if (redir.hasErrorRedirect) {
         ioRedirector.redirectError(redir.errorFile);

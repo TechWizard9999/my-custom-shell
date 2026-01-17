@@ -85,7 +85,14 @@ public:
     for (size_t i = 0; i < tokens.size(); i++) {
       const std::string &token = tokens[i];
 
-      if (token == ">" || token == "1>") {
+      if (token == ">>" || token == "1>>") {
+        if (i + 1 < tokens.size()) {
+          redir.hasOutputRedirect = true;
+          redir.appendOutput = true;
+          redir.outputFile = tokens[i + 1];
+          i++;
+        }
+      } else if (token == ">" || token == "1>") {
         if (i + 1 < tokens.size()) {
           redir.hasOutputRedirect = true;
           redir.outputFile = tokens[i + 1];
@@ -105,4 +112,3 @@ public:
     return std::make_pair(cmdTokens, redir);
   }
 };
-
