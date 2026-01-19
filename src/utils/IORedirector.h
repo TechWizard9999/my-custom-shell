@@ -18,7 +18,6 @@ private:
     if (isRedirecting[fdIndex]) {
       return false;
     }
-
     int flags = O_WRONLY | O_CREAT;
     if (append) {
       flags |= O_APPEND;
