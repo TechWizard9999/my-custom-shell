@@ -30,7 +30,7 @@ char *command_generator(const char *text, int state) {
   }
 
   if (match_index < matches.size()) {
-    std::string res = matches[match_index++] + " ";
+    std::string res = matches[match_index++];
     return strdup(res.c_str());
   }
 
