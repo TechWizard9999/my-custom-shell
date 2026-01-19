@@ -7,9 +7,40 @@
 #include "utils/PathSearcher.h"
 #include <iostream>
 #include <memory>
+#include <readline/history.h>
+#include <readline/readline.h>
 #include <string>
 #include <unordered_map>
 #include <vector>
+
+char *command_generator(const char *text, int state) {
+  static std::vector<std::string> matches;
+  static size_t match_index = 0;
+
+  if (state == 0) {
+    matches.clear();
+    match_index = 0;
+    std::vector<std::string> builtins = {"echo", "exit"};
+    std::string text_str(text);
+    for (const auto &word : builtins) {
+      if (word.substr(0, text_str.size()) == text_str) {
+        matches.push_back(word);
+      }
+    }
+  }
+
+  if (match_index < matches.size()) {
+    std::string res = matches[match_index++] + " ";
+    return strdup(res.c_str());
+  }
+
+  return nullptr;
+}
+
+char **attempted_completion(const char *text, int start, int end) {
+  rl_attempted_completion_over = 1;
+  return rl_completion_matches(text, command_generator);
+}
 
 class Shell {
 private:
@@ -25,13 +56,20 @@ public:
   }
 
   void run() {
-    while (true) {
-      std::cout << "$ ";
+    rl_attempted_completion_function = attempted_completion;
 
-      std::string input;
-      if (!std::getline(std::cin, input)) {
+    while (true) {
+      char *input_c = readline("$ ");
+
+      if (!input_c) {
         break;
       }
+
+      std::string input(input_c);
+      if (input.length() > 0) {
+        add_history(input_c);
+      }
+      free(input_c);
 
       if (input.empty())
         continue;
