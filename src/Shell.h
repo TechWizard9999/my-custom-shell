@@ -6,6 +6,7 @@
 #include "utils/Autocompleter.h"
 #include "utils/IORedirector.h"
 #include "utils/PathSearcher.h"
+#include "utils/PipelineExecutor.h"
 #include <iostream>
 #include <memory>
 #include <readline/history.h>
@@ -39,44 +40,25 @@ public:
     }
   }
 
-  void executePipeline(const std::vector<std::vector<std::string>> &cmds) {
-    int numCmds = cmds.size();
-    if (numCmds == 0)
-      return;
+  std::vector<std::vector<std::string>>
+  splitByPipe(const std::vector<std::string> &args) {
+    std::vector<std::vector<std::string>> result;
+    std::vector<std::string> current;
 
-    std::vector<int> pipes((numCmds - 1) * 2);
-    for (int i = 0; i < numCmds - 1; i++) {
-      if (pipe(&pipes[i * 2]) < 0) {
-        perror("pipe");
-        return;
+    for (const auto &arg : args) {
+      if (arg == "|") {
+        if (!current.empty()) {
+          result.push_back(current);
+          current.clear();
+        }
+      } else {
+        current.push_back(arg);
       }
     }
-
-    std::vector<pid_t> pids;
-    for (int i = 0; i < numCmds; i++) {
-      pid_t pid = fork();
-      if (pid == 0) {
-        if (i > 0) {
-          dup2(pipes[(i - 1) * 2], STDIN_FILENO);
-        }
-        if (i < numCmds - 1) {
-          dup2(pipes[i * 2 + 1], STDOUT_FILENO);
-        }
-        for (size_t j = 0; j < pipes.size(); j++) {
-          close(pipes[j]);
-        }
-        exit(executeCommand(cmds[i]));
-      }
-      pids.push_back(pid);
+    if (!current.empty()) {
+      result.push_back(current);
     }
-
-    for (size_t i = 0; i < pipes.size(); i++) {
-      close(pipes[i]);
-    }
-
-    for (pid_t pid : pids) {
-      waitpid(pid, nullptr, 0);
-    }
+    return result;
   }
 
   void run() {
@@ -106,25 +88,13 @@ public:
       if (args.empty())
         continue;
 
-      std::vector<std::vector<std::string>> pipelineCmds;
-      std::vector<std::string> currentCmd;
-
-      for (const auto &arg : args) {
-        if (arg == "|") {
-          if (!currentCmd.empty()) {
-            pipelineCmds.push_back(currentCmd);
-            currentCmd.clear();
-          }
-        } else {
-          currentCmd.push_back(arg);
-        }
-      }
-      if (!currentCmd.empty()) {
-        pipelineCmds.push_back(currentCmd);
-      }
+      std::vector<std::vector<std::string>> pipelineCmds = splitByPipe(args);
 
       if (pipelineCmds.size() > 1) {
-        executePipeline(pipelineCmds);
+        PipelineExecutor::execute(pipelineCmds,
+                                  [this](const std::vector<std::string> &a) {
+                                    return executeCommand(a);
+                                  });
         continue;
       }
 
