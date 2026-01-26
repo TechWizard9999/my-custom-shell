@@ -3,79 +3,16 @@
 #include "commands/Command.h"
 #include "commands/ExternalCommand.h"
 #include "parsers/CommandParser.h"
+#include "utils/Autocompleter.h"
 #include "utils/IORedirector.h"
 #include "utils/PathSearcher.h"
-#include <algorithm>
-#include <cstdlib>
-#include <dirent.h>
 #include <iostream>
 #include <memory>
 #include <readline/history.h>
 #include <readline/readline.h>
-#include <sstream>
 #include <string>
-#include <sys/stat.h>
-#include <unistd.h>
 #include <unordered_map>
 #include <vector>
-
-char *command_generator(const char *text, int state) {
-  static std::vector<std::string> matches;
-  static size_t match_index = 0;
-
-  if (state == 0) {
-    matches.clear();
-    match_index = 0;
-    std::string text_str(text);
-
-    std::vector<std::string> builtins = {"echo", "exit", "type", "pwd", "cd"};
-    for (const auto &word : builtins) {
-      if (word.substr(0, text_str.size()) == text_str) {
-        matches.push_back(word);
-      }
-    }
-
-    const char *path_env = std::getenv("PATH");
-    if (path_env) {
-      std::stringstream ss(path_env);
-      std::string dir;
-
-      while (std::getline(ss, dir, ':')) {
-        DIR *dp = opendir(dir.c_str());
-        if (!dp)
-          continue;
-
-        struct dirent *entry;
-        while ((entry = readdir(dp)) != nullptr) {
-          std::string name = entry->d_name;
-
-          if (name.substr(0, text_str.size()) == text_str) {
-            std::string fullPath = dir + "/" + name;
-            if (access(fullPath.c_str(), X_OK) == 0) {
-              if (std::find(matches.begin(), matches.end(), name) ==
-                  matches.end()) {
-                matches.push_back(name);
-              }
-            }
-          }
-        }
-        closedir(dp);
-      }
-    }
-  }
-
-  if (match_index < matches.size()) {
-    std::string res = matches[match_index++];
-    return strdup(res.c_str());
-  }
-
-  return nullptr;
-}
-
-char **attempted_completion(const char *text, int start, int end) {
-  rl_attempted_completion_over = 1;
-  return rl_completion_matches(text, command_generator);
-}
 
 class Shell {
 private:
@@ -91,7 +28,7 @@ public:
   }
 
   void run() {
-    rl_attempted_completion_function = attempted_completion;
+    Autocomplete::initialize();
 
     while (true) {
       char *input_c = readline("$ ");
