@@ -38,6 +38,12 @@ public:
             tokens.push_back(currentToken);
             currentToken.clear();
           }
+        } else if (c == '|') {
+          if (!currentToken.empty()) {
+            tokens.push_back(currentToken);
+            currentToken.clear();
+          }
+          tokens.push_back("|");
         } else {
           currentToken += c;
         }

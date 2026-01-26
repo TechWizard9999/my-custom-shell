@@ -27,6 +27,48 @@ public:
     return commands.find(name) != commands.end();
   }
 
+  int executeCommand(const std::vector<std::string> &args) {
+    if (args.empty())
+      return 0;
+    std::string cmdName = args[0];
+    if (hasCommand(cmdName)) {
+      return commands[cmdName]->execute(args);
+    } else {
+      static ExternalCommand externalCmd;
+      return externalCmd.execute(args);
+    }
+  }
+
+  void executePipeline(const std::vector<std::string> &leftArgs,
+                       const std::vector<std::string> &rightArgs) {
+    int pipefd[2];
+    if (pipe(pipefd) < 0) {
+      perror("pipe");
+      return;
+    }
+
+    pid_t pid1 = fork();
+    if (pid1 == 0) {
+      close(pipefd[0]);
+      dup2(pipefd[1], STDOUT_FILENO);
+      close(pipefd[1]);
+      exit(executeCommand(leftArgs));
+    }
+
+    pid_t pid2 = fork();
+    if (pid2 == 0) {
+      close(pipefd[1]);
+      dup2(pipefd[0], STDIN_FILENO);
+      close(pipefd[0]);
+      exit(executeCommand(rightArgs));
+    }
+
+    close(pipefd[0]);
+    close(pipefd[1]);
+    waitpid(pid1, nullptr, 0);
+    waitpid(pid2, nullptr, 0);
+  }
+
   void run() {
     Autocomplete::initialize();
 
@@ -54,6 +96,29 @@ public:
       if (args.empty())
         continue;
 
+      std::vector<std::string> leftCmd;
+      std::vector<std::string> rightCmd;
+      bool hasPipe = false;
+
+      for (const auto &arg : args) {
+        if (arg == "|") {
+          hasPipe = true;
+          continue;
+        }
+        if (hasPipe) {
+          rightCmd.push_back(arg);
+        } else {
+          leftCmd.push_back(arg);
+        }
+      }
+
+      if (hasPipe) {
+        if (!leftCmd.empty() && !rightCmd.empty()) {
+          executePipeline(leftCmd, rightCmd);
+        }
+        continue;
+      }
+
       IORedirector ioRedirector;
       if (redir.hasOutputRedirect) {
         ioRedirector.redirectOutput(redir.outputFile, redir.appendOutput);
@@ -62,13 +127,7 @@ public:
         ioRedirector.redirectError(redir.errorFile, redir.appendError);
       }
 
-      std::string cmdName = args[0];
-      if (hasCommand(cmdName)) {
-        commands[cmdName]->execute(args);
-      } else {
-        static ExternalCommand externalCmd;
-        externalCmd.execute(args);
-      }
+      executeCommand(args);
 
       ioRedirector.restore();
     }
