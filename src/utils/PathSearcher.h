@@ -4,7 +4,7 @@
 #include <sstream>
 #include <string>
 #include <sys/stat.h>
-#include <unistd.h> // Required for access() and X_OK
+#include <unistd.h>
 #include <vector>
 
 class PathSearcher {
@@ -25,5 +25,5 @@ public:
       }
     }
     return "";
-  } 
+  }
 };

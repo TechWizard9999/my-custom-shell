@@ -5,11 +5,17 @@
 #include "parsers/CommandParser.h"
 #include "utils/IORedirector.h"
 #include "utils/PathSearcher.h"
+#include <algorithm>
+#include <cstdlib>
+#include <dirent.h>
 #include <iostream>
 #include <memory>
 #include <readline/history.h>
 #include <readline/readline.h>
+#include <sstream>
 #include <string>
+#include <sys/stat.h>
+#include <unistd.h>
 #include <unordered_map>
 #include <vector>
 
@@ -20,11 +26,40 @@ char *command_generator(const char *text, int state) {
   if (state == 0) {
     matches.clear();
     match_index = 0;
-    std::vector<std::string> builtins = {"echo", "exit"};
     std::string text_str(text);
+
+    std::vector<std::string> builtins = {"echo", "exit", "type", "pwd", "cd"};
     for (const auto &word : builtins) {
       if (word.substr(0, text_str.size()) == text_str) {
         matches.push_back(word);
+      }
+    }
+
+    const char *path_env = std::getenv("PATH");
+    if (path_env) {
+      std::stringstream ss(path_env);
+      std::string dir;
+
+      while (std::getline(ss, dir, ':')) {
+        DIR *dp = opendir(dir.c_str());
+        if (!dp)
+          continue;
+
+        struct dirent *entry;
+        while ((entry = readdir(dp)) != nullptr) {
+          std::string name = entry->d_name;
+
+          if (name.substr(0, text_str.size()) == text_str) {
+            std::string fullPath = dir + "/" + name;
+            if (access(fullPath.c_str(), X_OK) == 0) {
+              if (std::find(matches.begin(), matches.end(), name) ==
+                  matches.end()) {
+                matches.push_back(name);
+              }
+            }
+          }
+        }
+        closedir(dp);
       }
     }
   }

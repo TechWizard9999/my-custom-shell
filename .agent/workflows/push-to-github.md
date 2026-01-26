@@ -4,6 +4,18 @@ description: Push shell project stages to personal GitHub repo
 
 # Push to GitHub Workflow
 
+## Quick Commands (Copy-Paste Ready)
+
+```bash
+# Push current code to GitHub (after pushing to CodeCrafters)
+git push github master:main
+
+# If there's a conflict, force push (use carefully)
+git push github master:main --force
+```
+
+---
+
 This workflow helps push incremental stages of the shell project to your personal GitHub repo while keeping CodeCrafters separate.
 
 ## Remotes Setup
