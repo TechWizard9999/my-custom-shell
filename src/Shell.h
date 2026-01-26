@@ -39,34 +39,44 @@ public:
     }
   }
 
-  void executePipeline(const std::vector<std::string> &leftArgs,
-                       const std::vector<std::string> &rightArgs) {
-    int pipefd[2];
-    if (pipe(pipefd) < 0) {
-      perror("pipe");
+  void executePipeline(const std::vector<std::vector<std::string>> &cmds) {
+    int numCmds = cmds.size();
+    if (numCmds == 0)
       return;
+
+    std::vector<int> pipes((numCmds - 1) * 2);
+    for (int i = 0; i < numCmds - 1; i++) {
+      if (pipe(&pipes[i * 2]) < 0) {
+        perror("pipe");
+        return;
+      }
     }
 
-    pid_t pid1 = fork();
-    if (pid1 == 0) {
-      close(pipefd[0]);
-      dup2(pipefd[1], STDOUT_FILENO);
-      close(pipefd[1]);
-      exit(executeCommand(leftArgs));
+    std::vector<pid_t> pids;
+    for (int i = 0; i < numCmds; i++) {
+      pid_t pid = fork();
+      if (pid == 0) {
+        if (i > 0) {
+          dup2(pipes[(i - 1) * 2], STDIN_FILENO);
+        }
+        if (i < numCmds - 1) {
+          dup2(pipes[i * 2 + 1], STDOUT_FILENO);
+        }
+        for (size_t j = 0; j < pipes.size(); j++) {
+          close(pipes[j]);
+        }
+        exit(executeCommand(cmds[i]));
+      }
+      pids.push_back(pid);
     }
 
-    pid_t pid2 = fork();
-    if (pid2 == 0) {
-      close(pipefd[1]);
-      dup2(pipefd[0], STDIN_FILENO);
-      close(pipefd[0]);
-      exit(executeCommand(rightArgs));
+    for (size_t i = 0; i < pipes.size(); i++) {
+      close(pipes[i]);
     }
 
-    close(pipefd[0]);
-    close(pipefd[1]);
-    waitpid(pid1, nullptr, 0);
-    waitpid(pid2, nullptr, 0);
+    for (pid_t pid : pids) {
+      waitpid(pid, nullptr, 0);
+    }
   }
 
   void run() {
@@ -96,26 +106,25 @@ public:
       if (args.empty())
         continue;
 
-      std::vector<std::string> leftCmd;
-      std::vector<std::string> rightCmd;
-      bool hasPipe = false;
+      std::vector<std::vector<std::string>> pipelineCmds;
+      std::vector<std::string> currentCmd;
 
       for (const auto &arg : args) {
         if (arg == "|") {
-          hasPipe = true;
-          continue;
-        }
-        if (hasPipe) {
-          rightCmd.push_back(arg);
+          if (!currentCmd.empty()) {
+            pipelineCmds.push_back(currentCmd);
+            currentCmd.clear();
+          }
         } else {
-          leftCmd.push_back(arg);
+          currentCmd.push_back(arg);
         }
       }
+      if (!currentCmd.empty()) {
+        pipelineCmds.push_back(currentCmd);
+      }
 
-      if (hasPipe) {
-        if (!leftCmd.empty() && !rightCmd.empty()) {
-          executePipeline(leftCmd, rightCmd);
-        }
+      if (pipelineCmds.size() > 1) {
+        executePipeline(pipelineCmds);
         continue;
       }
 
