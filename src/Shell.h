@@ -7,6 +7,8 @@
 #include "utils/IORedirector.h"
 #include "utils/PathSearcher.h"
 #include "utils/PipelineExecutor.h"
+#include <cstdlib>
+#include <fstream>
 #include <functional>
 #include <iostream>
 #include <memory>
@@ -20,6 +22,8 @@ class Shell {
 private:
   std::vector<std::string> cmdHistory;
   std::unordered_map<std::string, std::unique_ptr<Command>> commands;
+  size_t historyWrittenCount = 0;
+  std::string historyPath;
 
 public:
   void registerCommands(Command *cmd) {
@@ -37,6 +41,44 @@ public:
       return;
     add_history(cmd.c_str());
     cmdHistory.push_back(cmd);
+  }
+
+  std::string getDefaultHistoryPath() {
+    const char *home = getenv("HOME");
+    if (home) {
+      return std::string(home) + "/.shell_history";
+    }
+    return ".shell_history";
+  }
+
+  void loadHistory(const std::string &path = "") {
+    historyPath = path.empty() ? getDefaultHistoryPath() : path;
+    std::ifstream historyFile(historyPath);
+    if (historyFile.is_open()) {
+      std::string line;
+      while (std::getline(historyFile, line)) {
+        if (!line.empty()) {
+          add_history(line.c_str());
+          cmdHistory.push_back(line);
+        }
+      }
+      historyWrittenCount = cmdHistory.size();
+    }
+  }
+
+  void saveHistory(const std::string &path = "") {
+    std::string targetPath = path.empty() ? historyPath : path;
+    if (targetPath.empty()) {
+      targetPath = getDefaultHistoryPath();
+    }
+
+    std::ofstream historyFile(targetPath, std::ios::app);
+    if (historyFile.is_open()) {
+      for (size_t i = historyWrittenCount; i < cmdHistory.size(); ++i) {
+        historyFile << cmdHistory[i] << std::endl;
+      }
+      historyWrittenCount = cmdHistory.size();
+    }
   }
 
   int executeCommand(const std::vector<std::string> &args) {
@@ -74,11 +116,13 @@ public:
 
   void run() {
     Autocomplete::initialize();
+    loadHistory();
 
     while (true) {
       char *input_c = readline("$ ");
 
       if (!input_c) {
+        saveHistory();
         break;
       }
 

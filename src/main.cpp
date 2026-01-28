@@ -13,7 +13,7 @@ int main() {
 
   Shell shell;
 
-  shell.registerCommands(new ExitCommand());
+  shell.registerCommands(new ExitCommand(shell));
   shell.registerCommands(new EchoCommand());
   shell.registerCommands(new TypeCommand(shell));
   shell.registerCommands(new PwdCommand());

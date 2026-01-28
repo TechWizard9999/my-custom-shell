@@ -10,7 +10,6 @@
 class HistoryCommand : public Command {
 private:
   Shell &shell;
-  size_t historyWrittenCount = 0;
 
 public:
   HistoryCommand(Shell &s) : shell(s) {}
@@ -23,18 +22,7 @@ public:
         std::cerr << "history: option requires an argument" << std::endl;
         return 1;
       }
-      std::ifstream historyFile(args[2]);
-      if (!historyFile.is_open()) {
-        std::cerr << "history: " << args[2] << ": No such file or directory"
-                  << std::endl;
-        return 1;
-      }
-      std::string line;
-      while (std::getline(historyFile, line)) {
-        if (!line.empty()) {
-          shell.appendToHistory(line);
-        }
-      }
+      shell.loadHistory(args[2]);
       return 0;
     }
 
@@ -61,17 +49,7 @@ public:
         std::cerr << "history: option requires an argument" << std::endl;
         return 1;
       }
-      std::ofstream historyFile(args[2], std::ios::app);
-      if (!historyFile.is_open()) {
-        std::cerr << "history: " << args[2] << ": No such file or directory"
-                  << std::endl;
-        return 1;
-      }
-      const auto &history = shell.getHistory();
-      for (size_t i = historyWrittenCount; i < history.size(); ++i) {
-        historyFile << history[i] << std::endl;
-      }
-      historyWrittenCount = history.size();
+      shell.saveHistory(args[2]);
       return 0;
     }
 
