@@ -32,6 +32,13 @@ public:
 
   const std::vector<std::string> &getHistory() const { return cmdHistory; }
 
+  void appendToHistory(const std::string &cmd) {
+    if (cmd.empty())
+      return;
+    add_history(cmd.c_str());
+    cmdHistory.push_back(cmd);
+  }
+
   int executeCommand(const std::vector<std::string> &args) {
     if (args.empty())
       return 0;
