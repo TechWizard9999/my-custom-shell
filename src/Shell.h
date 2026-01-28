@@ -44,6 +44,10 @@ public:
   }
 
   std::string getDefaultHistoryPath() {
+    const char *histfile = getenv("HISTFILE");
+    if (histfile) {
+      return std::string(histfile);
+    }
     const char *home = getenv("HOME");
     if (home) {
       return std::string(home) + "/.shell_history";
