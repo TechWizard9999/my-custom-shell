@@ -7,6 +7,7 @@
 #include "utils/IORedirector.h"
 #include "utils/PathSearcher.h"
 #include "utils/PipelineExecutor.h"
+#include <functional>
 #include <iostream>
 #include <memory>
 #include <readline/history.h>
@@ -17,6 +18,7 @@
 
 class Shell {
 private:
+  std::vector<std::string> cmdHistory;
   std::unordered_map<std::string, std::unique_ptr<Command>> commands;
 
 public:
@@ -27,6 +29,8 @@ public:
   bool hasCommand(const std::string &name) const {
     return commands.find(name) != commands.end();
   }
+
+  const std::vector<std::string> &getHistory() const { return cmdHistory; }
 
   int executeCommand(const std::vector<std::string> &args) {
     if (args.empty())
@@ -74,6 +78,7 @@ public:
       std::string input(input_c);
       if (input.length() > 0) {
         add_history(input_c);
+        cmdHistory.push_back(input);
       }
       free(input_c);
 
