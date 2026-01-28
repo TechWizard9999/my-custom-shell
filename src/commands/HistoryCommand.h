@@ -55,6 +55,24 @@ public:
       return 0;
     }
 
+    if (args.size() > 1 && args[1] == "-a") {
+      if (args.size() < 3) {
+        std::cerr << "history: option requires an argument" << std::endl;
+        return 1;
+      }
+      std::ofstream historyFile(args[2], std::ios::app);
+      if (!historyFile.is_open()) {
+        std::cerr << "history: " << args[2] << ": No such file or directory"
+                  << std::endl;
+        return 1;
+      }
+      const auto &history = shell.getHistory();
+      for (const auto &cmd : history) {
+        historyFile << cmd << std::endl;
+      }
+      return 0;
+    }
+
     const auto &history = shell.getHistory();
     size_t startIndex = 0;
 
