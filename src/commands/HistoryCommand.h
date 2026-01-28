@@ -10,6 +10,7 @@
 class HistoryCommand : public Command {
 private:
   Shell &shell;
+  size_t historyWrittenCount = 0;
 
 public:
   HistoryCommand(Shell &s) : shell(s) {}
@@ -67,9 +68,10 @@ public:
         return 1;
       }
       const auto &history = shell.getHistory();
-      for (const auto &cmd : history) {
-        historyFile << cmd << std::endl;
+      for (size_t i = historyWrittenCount; i < history.size(); ++i) {
+        historyFile << history[i] << std::endl;
       }
+      historyWrittenCount = history.size();
       return 0;
     }
 
